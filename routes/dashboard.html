@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Instagram DM Automation</title>
+  <style>
+    :root {
+      --bg: #0f0f13;
+      --surface: #1a1a24;
+      --surface2: #22222f;
+      --border: #2e2e42;
+      --accent: #7c4dff;
+      --accent2: #e040fb;
+      --green: #00e676;
+      --red: #ff5252;
+      --yellow: #ffd740;
+      --text: #e8e8f0;
+      --muted: #888899;
+      --radius: 12px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+
+    /* Layout */
+    .app { display: flex; min-height: 100vh; }
+    .sidebar { width: 240px; background: var(--surface); border-right: 1px solid var(--border); padding: 0; display: flex; flex-direction: column; position: fixed; top: 0; left: 0; height: 100vh; z-index: 10; }
+    .main { margin-left: 240px; flex: 1; padding: 32px; }
+
+    /* Sidebar */
+    .logo { padding: 24px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+    .logo-icon { width: 36px; height: 36px; background: linear-gradient(135deg, var(--accent), var(--accent2)); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+    .logo-text { font-size: 15px; font-weight: 700; color: var(--text); }
+    .logo-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .nav { padding: 16px 10px; flex: 1; }
+    .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; cursor: pointer; color: var(--muted); font-size: 14px; font-weight: 500; transition: all 0.15s; margin-bottom: 4px; text-decoration: none; }
+    .nav-item:hover { background: var(--surface2); color: var(--text); }
+    .nav-item.active { background: rgba(124,77,255,0.15); color: var(--accent); }
+    .nav-icon { font-size: 18px; width: 22px; text-align: center; }
+    .sidebar-stats { padding: 16px; border-top: 1px solid var(--border); }
+    .stat-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px; }
+    .stat-label { color: var(--muted); }
+    .stat-value { color: var(--green); font-weight: 600; }
+
+    /* Main content */
+    .page { display: none; }
+    .page.active { display: block; }
+    .page-header { margin-bottom: 28px; }
+    .page-title { font-size: 24px; font-weight: 700; margin-bottom: 6px; }
+    .page-sub { color: var(--muted); font-size: 14px; }
+
+    /* Cards */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 20px; }
+    .card-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+
+    /* Forms */
+    .form-group { margin-bottom: 18px; }
+    label { display: block; font-size: 13px; font-weight: 500; color: var(--muted); margin-bottom: 6px; }
+    input, textarea, select { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; color: var(--text); font-size: 14px; outline: none; transition: border-color 0.15s; font-family: inherit; }
+    input:focus, textarea:focus { border-color: var(--accent); }
+    textarea { resize: vertical; min-height: 80px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .hint { font-size: 12px; color: var(--muted); margin-top: 5px; }
+
+    /* Buttons */
+    .btn { padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: #6a3de8; }
+    .btn-success { background: var(--green); color: #000; }
+    .btn-danger { background: transparent; border: 1px solid var(--red); color: var(--red); }
+    .btn-danger:hover { background: rgba(255,82,82,0.1); }
+    .btn-ghost { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+    .btn-ghost:hover { border-color: var(--accent); }
+    .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+    /* Campaign cards */
+    .campaign-grid { display: grid; gap: 16px; }
+    .campaign-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; transition: border-color 0.15s; }
+    .campaign-card:hover { border-color: var(--accent); }
+    .campaign-header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 16px; }
+    .post-thumb { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; background: var(--surface2); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 24px; overflow: hidden; }
+    .post-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .campaign-info { flex: 1; }
+    .campaign-id { font-size: 12px; color: var(--muted); font-family: monospace; margin-bottom: 4px; }
+    .campaign-caption { font-size: 13px; color: var(--text); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .campaign-actions { display: flex; gap: 8px; align-items: center; }
+    .badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .badge-active { background: rgba(0,230,118,0.15); color: var(--green); }
+    .badge-inactive { background: rgba(255,82,82,0.1); color: var(--red); }
+    .campaign-keywords { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+    .keyword-tag { background: rgba(124,77,255,0.15); color: var(--accent); padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+    .campaign-messages { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+    .msg-box { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+    .msg-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .msg-text { font-size: 13px; color: var(--text); line-height: 1.4; }
+
+    /* Toast */
+    .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 999; display: flex; flex-direction: column; gap: 8px; }
+    .toast { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px; font-size: 14px; display: flex; align-items: center; gap: 10px; animation: slideIn 0.2s ease; box-shadow: 0 4px 24px rgba(0,0,0,0.4); }
+    .toast.success { border-color: var(--green); }
+    .toast.error { border-color: var(--red); }
+    @keyframes slideIn { from { transform: translateX(60px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+    /* Modal */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; width: 580px; max-width: 95vw; max-height: 90vh; overflow-y: auto; }
+    .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+    .modal-close { cursor: pointer; color: var(--muted); font-size: 22px; }
+
+    /* Post preview */
+    .post-preview { display: none; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-top: 10px; flex-direction: row; gap: 14px; align-items: flex-start; }
+    .post-preview.show { display: flex; }
+    .preview-img { width: 70px; height: 70px; border-radius: 8px; object-fit: cover; background: var(--surface2); flex-shrink: 0; }
+    .preview-caption { font-size: 13px; color: var(--text); line-height: 1.4; }
+
+    /* Loading */
+    .spinner { width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Divider */
+    .divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+    /* Empty state */
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
+    .empty-state .empty-icon { font-size: 48px; margin-bottom: 16px; }
+    .empty-state h3 { font-size: 18px; color: var(--text); margin-bottom: 8px; }
+
+    @media (max-width: 768px) {
+      .sidebar { width: 60px; }
+      .logo-text, .logo-sub, .nav-item span, .sidebar-stats { display: none; }
+      .main { margin-left: 60px; padding: 16px; }
+      .form-row { grid-template-columns: 1fr; }
+      .campaign-messages { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-icon">📲</div>
+      <div>
+        <div class="logo-text">InstaBot</div>
+        <div class="logo-sub">Comment → DM</div>
+      </div>
+    </div>
+    <nav class="nav">
+      <a class="nav-item" id="nav-campaigns" onclick="showPage('campaigns')">
+        <span class="nav-icon">🎯</span>
+        <span>Campaigns</span>
+      </a>
+      <a class="nav-item" id="nav-settings" onclick="showPage('settings')">
+        <span class="nav-icon">⚙️</span>
+        <span>Settings</span>
+      </a>
+    </nav>
+    <div class="sidebar-stats" id="sidebar-stats">
+      <div class="stat-row"><span class="stat-label">Active</span><span class="stat-value" id="stat-active">-</span></div>
+      <div class="stat-row"><span class="stat-label">Processed</span><span class="stat-value" id="stat-processed">-</span></div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+
+    <!-- Campaigns Page -->
+    <div class="page" id="page-campaigns">
+      <div class="page-header">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div class="page-title">Campaigns</div>
+            <div class="page-sub">Automate comment replies and DMs for Instagram posts</div>
+          </div>
+          <button class="btn btn-primary" onclick="openAddModal()">＋ New Campaign</button>
+        </div>
+      </div>
+      <div id="campaigns-list">
+        <div class="empty-state">
+          <div class="spinner"></div>
+          <p style="margin-top:12px">Loading campaigns...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings Page -->
+    <div class="page" id="page-settings">
+      <div class="page-header">
+        <div class="page-title">Settings</div>
+        <div class="page-sub">Connect your Instagram Business account</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🔑 Instagram Credentials</div>
+        <div class="form-group">
+          <label>Long-lived Access Token</label>
+          <input type="password" id="cfg-token" placeholder="EAAxxxxxxxx..." />
+          <div class="hint">Generate from Facebook Graph API Explorer. Expires every 60 days.</div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Facebook Page ID</label>
+            <input type="text" id="cfg-page-id" placeholder="123456789" />
+          </div>
+          <div class="form-group">
+            <label>Instagram Business Account ID</label>
+            <input type="text" id="cfg-ig-id" placeholder="987654321" />
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <button class="btn btn-primary" onclick="saveConfig()">Save Credentials</button>
+          <span id="config-status" style="font-size:13px;color:var(--muted)"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🔗 Webhook Setup</div>
+        <p style="font-size:14px;color:var(--muted);margin-bottom:12px">Configure this URL in your Facebook Developer App → Webhooks:</p>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;font-family:monospace;font-size:13px;word-break:break-all" id="webhook-url">
+          https://YOUR-DOMAIN/webhook/instagram
+        </div>
+        <p style="font-size:13px;color:var(--muted);margin-top:10px">Set <strong>Verify Token</strong> to the value of <code>WEBHOOK_VERIFY_TOKEN</code> in your .env file. Subscribe to the <strong>comments</strong> field.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📋 How to get your Post ID</div>
+        <ol style="font-size:14px;color:var(--muted);line-height:1.8;padding-left:20px">
+          <li>Go to <a href="https://developers.facebook.com/tools/explorer" target="_blank" style="color:var(--accent)">Graph API Explorer</a></li>
+          <li>Run: <code style="background:var(--bg);padding:2px 6px;border-radius:4px">GET /{ig-user-id}/media?fields=id,caption,timestamp</code></li>
+          <li>Copy the <code>id</code> of the post you want to track</li>
+        </ol>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Add Campaign Modal -->
+<div class="modal-overlay" id="add-modal">
+  <div class="modal">
+    <div class="modal-title">
+      New Campaign
+      <span class="modal-close" onclick="closeModal()">×</span>
+    </div>
+
+    <div class="form-group">
+      <label>Instagram Post ID</label>
+      <input type="text" id="new-post-id" placeholder="17854360229135492" onblur="fetchPostPreview()" />
+      <div class="hint">The numeric ID of the Instagram post/reel to track.</div>
+      <div class="post-preview" id="post-preview">
+        <img class="preview-img" id="preview-img" src="" alt="" />
+        <div class="preview-caption" id="preview-caption"></div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Trigger Keywords (comma-separated)</label>
+      <input type="text" id="new-keywords" placeholder="link, info, price, send me" />
+      <div class="hint">If a comment contains ANY of these words, automation triggers.</div>
+    </div>
+
+    <div class="form-group">
+      <label>Comment Reply</label>
+      <textarea id="new-comment-reply" placeholder="Hey! Check your DMs 📩"></textarea>
+      <div class="hint">This will be posted as a public reply under the comment.</div>
+    </div>
+
+    <div class="form-group">
+      <label>DM Message</label>
+      <textarea id="new-dm-message" placeholder="Hi! Here's the link you asked for: https://..."></textarea>
+      <div class="hint">This will be sent as a private message to the commenter.</div>
+    </div>
+
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="createCampaign()" id="create-btn">Create Campaign</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toasts"></div>
+
+<script>
+  const initialPage = '{{ page }}';
+  let campaigns = [];
+
+  // ── Navigation ──────────────────────────────────────────────────────────
+  function showPage(page) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('page-' + page).classList.add('active');
+    document.getElementById('nav-' + page).classList.add('active');
+    if (page === 'campaigns') loadCampaigns();
+    if (page === 'settings') loadConfig();
+  }
+
+  // ── Toast ────────────────────────────────────────────────────────────────
+  function toast(msg, type = 'success') {
+    const t = document.createElement('div');
+    t.className = `toast ${type}`;
+    t.innerHTML = `<span>${type === 'success' ? '✅' : '❌'}</span><span>${msg}</span>`;
+    document.getElementById('toasts').appendChild(t);
+    setTimeout(() => t.remove(), 3500);
+  }
+
+  // ── Stats ────────────────────────────────────────────────────────────────
+  async function loadStats() {
+    try {
+      const r = await fetch('/api/stats');
+      const d = await r.json();
+      document.getElementById('stat-active').textContent = d.active_campaigns;
+      document.getElementById('stat-processed').textContent = d.total_processed;
+    } catch {}
+  }
+
+  // ── Settings ─────────────────────────────────────────────────────────────
+  async function loadConfig() {
+    try {
+      const r = await fetch('/api/config');
+      const d = await r.json();
+      document.getElementById('cfg-token').value = d.access_token || '';
+      document.getElementById('cfg-page-id').value = d.page_id || '';
+      document.getElementById('cfg-ig-id').value = d.instagram_account_id || '';
+    } catch { toast('Failed to load config', 'error'); }
+
+    // Set webhook URL
+    document.getElementById('webhook-url').textContent = window.location.origin + '/webhook/instagram';
+  }
+
+  async function saveConfig() {
+    const status = document.getElementById('config-status');
+    status.textContent = 'Saving...';
+    try {
+      const r = await fetch('/api/config', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          access_token: document.getElementById('cfg-token').value.trim(),
+          page_id: document.getElementById('cfg-page-id').value.trim(),
+          instagram_account_id: document.getElementById('cfg-ig-id').value.trim()
+        })
+      });
+      const d = await r.json();
+      if (d.token_valid) {
+        toast('Credentials saved! Token is valid ✅');
+        status.innerHTML = '<span style="color:var(--green)">✅ Token valid</span>';
+      } else {
+        toast('Saved, but token may be invalid', 'error');
+        status.innerHTML = '<span style="color:var(--yellow)">⚠️ Token invalid or expired</span>';
+      }
+    } catch { toast('Failed to save', 'error'); status.textContent = ''; }
+  }
+
+  // ── Campaigns ────────────────────────────────────────────────────────────
+  async function loadCampaigns() {
+    try {
+      const r = await fetch('/api/campaigns');
+      campaigns = await r.json();
+      renderCampaigns();
+      loadStats();
+    } catch { toast('Failed to load campaigns', 'error'); }
+  }
+
+  function renderCampaigns() {
+    const el = document.getElementById('campaigns-list');
+    if (!campaigns.length) {
+      el.innerHTML = `<div class="empty-state"><div class="empty-icon">🎯</div><h3>No campaigns yet</h3><p>Create your first campaign to start automating replies and DMs.</p></div>`;
+      return;
+    }
+    el.innerHTML = `<div class="campaign-grid">${campaigns.map(c => campaignCard(c)).join('')}</div>`;
+  }
+
+  function campaignCard(c) {
+    const keywords = c.keywords.split(',').map(k => `<span class="keyword-tag">${k.trim()}</span>`).join('');
+    const thumb = c.post_thumbnail
+      ? `<img src="${c.post_thumbnail}" onerror="this.style.display='none'" />`
+      : `📷`;
+    const caption = c.post_caption ? c.post_caption.slice(0, 100) + (c.post_caption.length > 100 ? '…' : '') : 'No caption';
+    return `
+    <div class="campaign-card">
+      <div class="campaign-header">
+        <div class="post-thumb">${thumb}</div>
+        <div class="campaign-info">
+          <div class="campaign-id">Post ID: ${c.post_id}</div>
+          <div class="campaign-caption">${escHtml(caption)}</div>
+        </div>
+        <div class="campaign-actions">
+          <span class="badge ${c.is_active ? 'badge-active' : 'badge-inactive'}">${c.is_active ? 'Active' : 'Inactive'}</span>
+        </div>
+      </div>
+      <div class="campaign-keywords">${keywords}</div>
+      <div class="campaign-messages">
+        <div class="msg-box">
+          <div class="msg-label">💬 Comment Reply</div>
+          <div class="msg-text">${escHtml(c.comment_reply)}</div>
+        </div>
+        <div class="msg-box">
+          <div class="msg-label">📩 DM Message</div>
+          <div class="msg-text">${escHtml(c.dm_message)}</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-sm btn-ghost" onclick="toggleCampaign(${c.id})">${c.is_active ? '⏸ Pause' : '▶ Activate'}</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteCampaign(${c.id})">🗑 Delete</button>
+      </div>
+    </div>`;
+  }
+
+  async function toggleCampaign(id) {
+    await fetch(`/api/campaigns/${id}/toggle`, {method: 'POST'});
+    loadCampaigns();
+  }
+
+  async function deleteCampaign(id) {
+    if (!confirm('Delete this campaign?')) return;
+    await fetch(`/api/campaigns/${id}`, {method: 'DELETE'});
+    toast('Campaign deleted');
+    loadCampaigns();
+  }
+
+  // ── Add Campaign Modal ───────────────────────────────────────────────────
+  function openAddModal() {
+    document.getElementById('add-modal').classList.add('open');
+    document.getElementById('new-post-id').value = '';
+    document.getElementById('new-keywords').value = '';
+    document.getElementById('new-comment-reply').value = '';
+    document.getElementById('new-dm-message').value = '';
+    document.getElementById('post-preview').classList.remove('show');
+  }
+
+  function closeModal() {
+    document.getElementById('add-modal').classList.remove('open');
+  }
+
+  async function fetchPostPreview() {
+    const postId = document.getElementById('new-post-id').value.trim();
+    if (!postId) return;
+    const preview = document.getElementById('post-preview');
+    preview.innerHTML = '<span class="spinner"></span> Fetching post...';
+    preview.classList.add('show');
+    try {
+      const r = await fetch(`/api/post-preview/${postId}`);
+      if (!r.ok) throw new Error('Not found');
+      const d = await r.json();
+      document.getElementById('post-preview').innerHTML = `
+        <img class="preview-img" src="${d.thumbnail || ''}" onerror="this.style.display='none'" />
+        <div class="preview-caption">${escHtml(d.caption || 'No caption')}</div>
+      `;
+    } catch {
+      preview.innerHTML = '<span style="color:var(--red);font-size:13px">⚠️ Could not fetch post. Check Post ID and credentials.</span>';
+    }
+  }
+
+  async function createCampaign() {
+    const btn = document.getElementById('create-btn');
+    btn.disabled = true;
+    btn.textContent = 'Creating...';
+    try {
+      const r = await fetch('/api/campaigns', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          post_id: document.getElementById('new-post-id').value.trim(),
+          keywords: document.getElementById('new-keywords').value.trim(),
+          comment_reply: document.getElementById('new-comment-reply').value.trim(),
+          dm_message: document.getElementById('new-dm-message').value.trim(),
+        })
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.detail || 'Error');
+      toast('Campaign created! 🎉');
+      closeModal();
+      loadCampaigns();
+    } catch (e) {
+      toast(e.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Create Campaign';
+    }
+  }
+
+  function escHtml(str) {
+    return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // ── Init ─────────────────────────────────────────────────────────────────
+  showPage(initialPage || 'campaigns');
+</script>
+</body>
+</html>
